@@ -10,59 +10,59 @@ def bot_whatsapp():
     resp = MessagingResponse()
     msg = resp.message()
 
-    # Opción 1: Catálogo Completo de Productos
+    # Opción 1: Catálogo Completo sin precios
     if incoming_msg == '1':
         msg.body(
             "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
             "🍕 *Pizzas*:\n"
-            "• [P01] Pizza Muzza - $\n"
-            "• [P02] Pizza Especial - $\n"
-            "• [P03] Pizza Fugazzeta - $\n"
-            "• [P04] Pizza - $\n"
-            "• [P05] Pizza - $\n"
-            "• [P06] Pizza - $\n"
-            "• [P07] Pizza - $\n\n"
+            "• [P01] Pizza Muzza\n"
+            "• [P02] Pizza Especial\n"
+            "• [P03] Pizza Fugazzeta\n"
+            "• [P04] Pizza\n"
+            "• [P05] Pizza\n"
+            "• [P06] Pizza\n"
+            "• [P07] Pizza\n\n"
             "🌾 *Pizzas Sin TACC*:\n"
-            "• [ST01] Pizzas Sin TACC - $\n"
-            "• [ST02] Pizzas Sin TACC - $\n"
-            "• [ST03] Pizzas Sin TACC - $\n\n"
+            "• [ST01] Pizzas Sin TACC\n"
+            "• [ST02] Pizzas Sin TACC\n"
+            "• [ST03] Pizzas Sin TACC\n\n"
             "🧊 *Congeladas*:\n"
-            "• [C01] Congeladas - $10\n"
-            "• [C02] Congeladas - $\n"
-            "• [C03] Congeladas - $\n\n"
+            "• [C01] Congeladas\n"
+            "• [C02] Congeladas\n"
+            "• [C03] Congeladas\n\n"
             "🥟 *Empanadas*:\n"
-            "• [E01] Empanadas - $\n"
-            "• [E02] Empanadas - $\n"
-            "• [E03] Empanadas - $\n"
-            "• [E04] Empanadas - $\n"
-            "• [E05] Empanadas - $\n"
-            "• [E06] Empanadas - $\n\n"
-            "Respondé con el código del producto para agregarlo o elegí otra opción."
+            "• [E01] Empanadas\n"
+            "• [E02] Empanadas\n"
+            "• [E03] Empanadas\n"
+            "• [E04] Empanadas\n"
+            "• [E05] Empanadas\n"
+            "• [E06] Empanadas\n\n"
+            "Respondé con el código del producto para agregarlo."
         )
 
-    # Opción 2: Promociones y Combos
+    # Opción 2: Promociones y Combos sin precios
     elif incoming_msg == '2':
         msg.body(
             "🔥 *PROMOCIONES Y COMBOS*:\n\n"
-            "⭐ [P01] Pizzas - $,,\n"
-            "⭐ [P02] Pizzas - $,\n"
-            "⭐ [P03] Pizzas - $,\n"
-            "⭐ [P04] Pizzas - $,\n"
-            "⭐ [P05] Pizzas - $,\n"
-            "⭐ [P06] Pizzas - $,\n"
-            "⭐ [P07] Pizzas - $,\n"
-            "⭐ [ST01] Pizzas Sin TACC - $,\n"
-            "⭐ [ST02] Pizzas Sin TACC - $,\n"
-            "⭐ [ST03] Pizzas Sin TACC - $,\n"
-            "⭐ [C01] Congeladas - $10.\n"
-            "⭐ [C02] Congeladas - $\n"
-            "⭐ [C03] Congeladas - $\n"
-            "⭐ [E01] Empanadas - $\n"
-            "⭐ [E02] Empanadas - $\n"
-            "⭐ [E03] Empanadas - $\n"
-            "⭐ [E04] Empanadas - $\n"
-            "⭐ [E05] Empanadas - $\n"
-            "⭐ [E06] Empanadas - $\n\n"
+            "⭐ [P01] Pizzas\n"
+            "⭐ [P02] Pizzas\n"
+            "⭐ [P03] Pizzas\n"
+            "⭐ [P04] Pizzas\n"
+            "⭐ [P05] Pizzas\n"
+            "⭐ [P06] Pizzas\n"
+            "⭐ [P07] Pizzas\n"
+            "⭐ [ST01] Pizzas Sin TACC\n"
+            "⭐ [ST02] Pizzas Sin TACC\n"
+            "⭐ [ST03] Pizzas Sin TACC\n"
+            "⭐ [C01] Congeladas\n"
+            "⭐ [C02] Congeladas\n"
+            "⭐ [C03] Congeladas\n"
+            "⭐ [E01] Empanadas\n"
+            "⭐ [E02] Empanadas\n"
+            "⭐ [E03] Empanadas\n"
+            "⭐ [E04] Empanadas\n"
+            "⭐ [E05] Empanadas\n"
+            "⭐ [E06] Empanadas\n\n"
             "Respondé con el código de la promo para seleccionarla."
         )
 
@@ -88,4 +88,4 @@ def bot_whatsapp():
     return str(resp)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=10000) 
