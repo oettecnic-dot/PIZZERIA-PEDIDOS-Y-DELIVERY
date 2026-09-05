@@ -7,7 +7,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 app = Flask(__name__)
 
 # ID de la Google Sheet del comercio (cada vez que el dueño edite su planilla web, el bot leerá los cambios al instante)
-SPREADSHEET_ID = "1kgS09pgPEeJF1EOLSr2Klcfo8TUWB0oW"
+SPREADSHEET_ID = "1JytqThEjIp_S5P51NkQ-0nLlXq5-2OEuk9XMNAlKCe0"
 
 def leer_google_sheet_publica(nombre_pestana):
     try:
