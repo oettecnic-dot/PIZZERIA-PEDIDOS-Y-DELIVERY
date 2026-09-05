@@ -1,28 +1,25 @@
-import openpyxl
+import csv
+import io
+import requests
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
-def leer_excel_local(nombre_pestana):
+# ID de la Google Sheet del comercio (cada vez que el dueño edite su planilla web, el bot leerá los cambios al instante)
+SPREADSHEET_ID = "1kgS09pgPEeJF1EOLSr2Klcfo8TUWB0oW"
+
+def leer_google_sheet_publica(nombre_pestana):
     try:
-        wb = openpyxl.load_workbook("menu_y_promos_comercio.xlsx", data_only=True)
-        pestana_encontrada = None
-        for name in wb.sheetnames:
-            if name.strip().lower() == nombre_pestana.strip().lower():
-                pestana_encontrada = name
-                break
-        
-        if pestana_encontrada:
-            sheet = wb[pestana_encontrada]
-            filas = []
-            for row in sheet.iter_rows(values_only=True):
-                fila_str = [str(cell).strip() if cell is not None else "" for cell in row]
-                if any(fila_str):
-                    filas.append(fila_str)
+        url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet={nombre_pestana}"
+        response = requests.get(url)
+        if response.status_code == 200:
+            decoded_content = response.content.decode('utf-8')
+            reader = csv.reader(io.StringIO(decoded_content))
+            filas = list(reader)
             return filas[1:] if len(filas) > 1 else []
     except Exception as e:
-        print(f"Error al leer el excel local: {e}")
+        print(f"Error al leer la planilla web: {e}")
     return []
 
 sesiones_usuarios = {}
@@ -45,7 +42,6 @@ def whatsapp_webhook():
     usuario = sesiones_usuarios[sender_number]
     estado_actual = usuario["estado"]
 
-    # Comandos globales para reiniciar o ver el carrito en cualquier momento
     if "hola" in incoming_msg or "menu" in incoming_msg or "inicio" in incoming_msg:
         usuario["estado"] = "MENU"
         usuario["carrito"] = []
@@ -73,31 +69,31 @@ def whatsapp_webhook():
 
     elif estado_actual == "MENU":
         if incoming_msg == "1":
-            filas = leer_excel_local("Menú y Productos")
+            filas = leer_google_sheet_publica("Menú y Productos")
             if filas:
                 texto = "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
                 for r in filas[:10]:
                     if len(r) >= 5:
-                        codigo = r[0]
-                        producto = r[2]
-                        precio = r[4]
+                        codigo = r[0].strip()   # Columna A: Código
+                        producto = r[2].strip() # Columna C: Producto / Variedad
+                        precio = r[4].strip()   # Columna E: Precio ($)
                         if codigo:
                             texto += f"🔹 *[{codigo}]* {producto} - ${precio}\n"
                 texto += "\nRespondé con el *Código* del producto (ej: P01) para sumarlo, o *3* para ver tu carrito."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer los productos del archivo Excel local.")
+                msg.body("⚠️ No se pudieron leer los productos. Verificá que la solapa se llame 'Menú y Productos' y esté configurada como pública (Lector con enlace).")
 
         elif incoming_msg == "2":
-            filas = leer_excel_local("Promociones y Combos")
+            filas = leer_google_sheet_publica("Promociones y Combos")
             if filas:
                 texto = "🔥 *PROMOCIONES Y COMBOS*:\n\n"
                 for r in filas:
                     if len(r) >= 4:
-                        codigo = r[0]
-                        promo = r[1]
-                        precio = r[3]
+                        codigo = r[0].strip()
+                        promo = r[1].strip()
+                        precio = r[3].strip()
                         if codigo:
                             texto += f"⭐ *[{codigo}]* {promo} - *${precio}*\n"
                 texto += "\nRespondé con el *Código* de la promo (ej: C01), o *3* para ver tu carrito."
@@ -114,15 +110,15 @@ def whatsapp_webhook():
             msg.body("Volviste al menú principal. Escribí 1, 2 o 3.")
         else:
             encontrado = None
-            for r in leer_excel_local("Menú y Productos"):
-                if len(r) >= 5 and r[0].lower() == incoming_msg:
-                    encontrado = {"nombre": r[2], "precio": r[4]}
+            for r in leer_google_sheet_publica("Menú y Productos"):
+                if len(r) >= 5 and r[0].strip().lower() == incoming_msg:
+                    encontrado = {"nombre": r[2].strip(), "precio": r[4].strip()}
                     break
             
             if not encontrado:
-                for r in leer_excel_local("Promociones y Combos"):
-                    if len(r) >= 4 and r[0].lower() == incoming_msg:
-                        encontrado = {"nombre": r[1], "precio": r[3]}
+                for r in leer_google_sheet_publica("Promociones y Combos"):
+                    if len(r) >= 4 and r[0].strip().lower() == incoming_msg:
+                        encontrado = {"nombre": r[1].strip(), "precio": r[3].strip()}
                         break
 
             if encontrado:
