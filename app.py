@@ -6,7 +6,6 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
-# Reemplazá este ID por el ID real de tu Google Sheet (lo sacás de la URL de tu planilla)
 SPREADSHEET_ID = "1kgS09pgPEeJF1EOLSr2Klcfo8TUWB0oW"
 
 def leer_google_sheet_publica(nombre_pestana):
@@ -17,19 +16,7 @@ def leer_google_sheet_publica(nombre_pestana):
             decoded_content = response.content.decode('utf-8')
             reader = csv.reader(io.StringIO(decoded_content))
             filas = list(reader)
-            if len(filas) <= 1:
-                return []
-            
-            # Limpiamos los nombres de las cabeceras (quitando espacios)
-            cabeceras = [h.strip().lower() for h in filas[0]]
-            
-            resultados = []
-            for fila in filas[1:]:
-                if len(fila) >= len(cabeceras):
-                    # Creamos un diccionario asociando cada cabecera con su valor
-                    item = {cabeceras[i]: fila[i].strip() for i in range(len(cabeceras))}
-                    resultados.append(item)
-            return resultados
+            return filas[1:] if len(filas) > 1 else []
     except Exception as e:
         print(f"Error al leer la planilla: {e}")
     return []
@@ -68,37 +55,38 @@ def whatsapp_webhook():
 
     elif estado_actual == "MENU":
         if incoming_msg == "1":
-            registros = leer_google_sheet_publica("Menú y Productos")
-            if registros:
+            filas = leer_google_sheet_publica("Menú y Productos")
+            if filas:
                 texto = "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
-                for r in registros[:10]:
-                    # Buscamos las columnas de forma inteligente sin importar el orden exacto
-                    codigo = r.get('código') or r.get('codigo') or ''
-                    producto = r.get('producto / variedad') or r.get('producto') or ''
-                    precio = r.get('precio ($)') or r.get('precio') or ''
-                    if codigo:
-                        texto += f"🔹 *[{codigo}]* {producto} - ${precio}\n"
+                for r in filas[:10]:
+                    if len(r) >= 5:
+                        codigo = r[0].strip()   # Columna A: Código
+                        producto = r[2].strip() # Columna C: Producto / Variedad
+                        precio = r[4].strip()   # Columna E: Precio ($)
+                        if codigo:
+                            texto += f"🔹 *[{codigo}]* {producto} - ${precio}\n"
                 texto += "\nRespondé con el *Código* del producto (ej: P01) para sumarlo, o *0* para volver."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer los productos. Verificá que la solapa se llame exactamente 'Menú y Productos' y sea pública.")
+                msg.body("⚠️ No se pudieron leer los productos. Verificá que el enlace esté abierto como 'Cualquier persona con el enlace'.")
 
         elif incoming_msg == "2":
-            registros = leer_google_sheet_publica("Promociones y Combos")
-            if registros:
+            filas = leer_google_sheet_publica("Promociones y Combos")
+            if filas:
                 texto = "🔥 *PROMOCIONES Y COMBOS*:\n\n"
-                for r in registros:
-                    codigo = r.get('código combo') or r.get('código') or r.get('codigo') or ''
-                    promo = r.get('nombre de la promoción') or r.get('nombre') or ''
-                    precio = r.get('precio promo ($)') or r.get('precio ($)') or r.get('precio') or ''
-                    if codigo:
-                        texto += f"⭐ *[{codigo}]* {promo} - *${precio}*\n"
-                texto += "\nRespondé con el *Código* de la promo (ej: PR01), o *0* para volver."
+                for r in filas:
+                    if len(r) >= 4:
+                        codigo = r[0].strip()
+                        promo = r[1].strip()
+                        precio = r[3].strip()
+                        if codigo:
+                            texto += f"⭐ *[{codigo}]* {promo} - *${precio}*\n"
+                texto += "\nRespondé con el *Código* de la promo (ej: C01), o *0* para volver."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer las promos de la solapa 'Promociones y Combos'.")
+                msg.body("⚠️ No se pudieron leer las promociones.")
 
         elif incoming_msg == "3":
             if not usuario["carrito"]:
@@ -108,7 +96,7 @@ def whatsapp_webhook():
                 total = 0
                 for item in usuario["carrito"]:
                     detalle += f"- {item['nombre']}: ${item['precio']}\n"
-                    total += float(item['precio'])
+                    total += float(item['precio'].replace('.', '').replace(',', '.'))
                 detalle += f"\nTotal a pagar: *${total}*\n\nRespondé *CONFIRMAR* para finalizar o *MENU* para seguir comprando."
                 usuario["estado"] = "CONFIRMACION"
                 msg.body(detalle)
@@ -121,23 +109,15 @@ def whatsapp_webhook():
             msg.body("Volviste al menú principal. Escribí 1, 2 o 3.")
         else:
             encontrado = None
-            # Buscamos en Menú y Productos
             for r in leer_google_sheet_publica("Menú y Productos"):
-                cod = str(r.get('código') or r.get('codigo') or '').strip().lower()
-                if cod == incoming_msg:
-                    nombre = r.get('producto / variedad') or r.get('producto') or ''
-                    precio = r.get('precio ($)') or r.get('precio') or '0'
-                    encontrado = {"nombre": nombre, "precio": precio}
+                if len(r) >= 5 and r[0].strip().lower() == incoming_msg:
+                    encontrado = {"nombre": r[2].strip(), "precio": r[4].strip()}
                     break
             
-            # Si no está en productos, buscamos en Promos
             if not encontrado:
                 for r in leer_google_sheet_publica("Promociones y Combos"):
-                    cod = str(r.get('código combo') or r.get('código') or r.get('codigo') or '').strip().lower()
-                    if cod == incoming_msg:
-                        nombre = r.get('nombre de la promoción') or r.get('nombre') or ''
-                        precio = r.get('precio promo ($)') or r.get('precio ($)') or r.get('precio') or '0'
-                        encontrado = {"nombre": nombre, "precio": precio}
+                    if len(r) >= 4 and r[0].strip().lower() == incoming_msg:
+                        encontrado = {"nombre": r[1].strip(), "precio": r[3].strip()}
                         break
 
             if encontrado:
