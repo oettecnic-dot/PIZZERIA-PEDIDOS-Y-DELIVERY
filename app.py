@@ -10,66 +10,50 @@ def bot_whatsapp():
     resp = MessagingResponse()
     msg = resp.message()
 
-    # Opción 1: Catálogo Completo sin precios
+    # Opción 1: Catálogo Completo Extenso
     if incoming_msg == '1':
         msg.body(
-            "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
-            "🍕 *Pizzas*:\n"
-            "• [P01] Pizza Muzza\n"
-            "• [P02] Pizza Especial\n"
-            "• [P03] Pizza Fugazzeta\n"
-            "• [P04] Pizza\n"
-            "• [P05] Pizza\n"
-            "• [P06] Pizza\n"
-            "• [P07] Pizza\n\n"
-            "🌾 *Pizzas Sin TACC*:\n"
-            "• [ST01] Pizzas Sin TACC\n"
-            "• [ST02] Pizzas Sin TACC\n"
-            "• [ST03] Pizzas Sin TACC\n\n"
-            "🧊 *Congeladas*:\n"
-            "• [C01] Congeladas\n"
-            "• [C02] Congeladas\n"
-            "• [C03] Congeladas\n\n"
-            "🥟 *Empanadas*:\n"
-            "• [E01] Empanadas\n"
-            "• [E02] Empanadas\n"
-            "• [E03] Empanadas\n"
-            "• [E04] Empanadas\n"
-            "• [E05] Empanadas\n"
-            "• [E06] Empanadas\n\n"
-            "Respondé con el código del producto para agregarlo."
+            "📋 CATÁLOGO DE PRODUCTOS:\n\n"
+            "🍕 Pizzas:\n"
+            "• [P01] Pizza Muzza - $8500\n"
+            "• [P02] Pizza Especial - $9500\n"
+            "• [P03] Pizza Fugazzeta - $9000\n"
+            "• [P04] Pizza Napolitana - $9800\n"
+            "• [P05] Pizza Calabresa - $9800\n"
+            "• [P06] Pizza Jamón y Morrones - $10200\n"
+            "• [P07] Pizza Cuatro Quesos - $10500\n\n"
+            "🌾 Pizzas Sin TACC:\n"
+            "• [ST01] Pizzas Sin TACC Muzza - $9500\n"
+            "• [ST02] Pizzas Sin TACC Especial - $10500\n"
+            "• [ST03] Pizzas Sin TACC Fugazzeta - $10000\n\n"
+            "🧊 Congeladas:\n"
+            "• [C01] Congeladas Muzza - $10000\n"
+            "• [C02] Congeladas Especial - $11000\n"
+            "• [C03] Congeladas Fugazzeta - $10500\n\n"
+            "🥟 Empanadas:\n"
+            "• [E01] Empanada de Carne - $1200\n"
+            "• [E02] Empanada de Jamón y Queso - $1200\n"
+            "• [E03] Empanada de Pollo - $1200\n"
+            "• [E04] Empanada de Verdura - $1200\n"
+            "• [E05] Empanada de Cebolla y Queso - $1200\n"
+            "• [E06] Empanada de Roquefort - $1300\n\n"
+            "Respondé con el código del producto para agregarlo o elegí otra opción."
         )
 
-    # Opción 2: Promociones y Combos sin precios
+    # Opción 2: Promociones y Combos
     elif incoming_msg == '2':
         msg.body(
-            "🔥 *PROMOCIONES Y COMBOS*:\n\n"
-            "⭐ [P01] Pizzas\n"
-            "⭐ [P02] Pizzas\n"
-            "⭐ [P03] Pizzas\n"
-            "⭐ [P04] Pizzas\n"
-            "⭐ [P05] Pizzas\n"
-            "⭐ [P06] Pizzas\n"
-            "⭐ [P07] Pizzas\n"
-            "⭐ [ST01] Pizzas Sin TACC\n"
-            "⭐ [ST02] Pizzas Sin TACC\n"
-            "⭐ [ST03] Pizzas Sin TACC\n"
-            "⭐ [C01] Congeladas\n"
-            "⭐ [C02] Congeladas\n"
-            "⭐ [C03] Congeladas\n"
-            "⭐ [E01] Empanadas\n"
-            "⭐ [E02] Empanadas\n"
-            "⭐ [E03] Empanadas\n"
-            "⭐ [E04] Empanadas\n"
-            "⭐ [E05] Empanadas\n"
-            "⭐ [E06] Empanadas\n\n"
+            "🔥 PROMOCIONES Y COMBOS:\n\n"
+            "⭐ [PROMO1] 2 Pizzas Muzza + Fainá - $15000\n"
+            "⭐ [PROMO2] 1 Pizza Especial + 6 Empanadas - $16000\n"
+            "⭐ [PROMO3] Pack x3 Pizzas a elección - $24000\n\n"
             "Respondé con el código de la promo para seleccionarla."
         )
 
     # Opción 3: Carrito Actual
     elif incoming_msg == '3':
         msg.body(
-            "🛒 *TU CARRITO ACTUAL*:\n\n"
+            "🛒 TU CARRITO ACTUAL:\n\n"
             "Aún no tenés productos cargados en tu pedido.\n\n"
             "Escribí el código de lo que quieras sumar."
         )
