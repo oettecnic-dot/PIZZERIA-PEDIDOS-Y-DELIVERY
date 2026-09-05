@@ -1,51 +1,48 @@
-import csv
-import io
-import requests
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
-SPREADSHEET_ID = "1uzGGa7y_hIZ5BWlPKD_YIyO491V2b5QOroFODVDyvh0"
-
-def leer_google_sheet_publica(nombre_pestana):
-    try:
-        # Lee directamente la primera solapa de la planilla sin importar el nombre escrito
-        url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:csv"
-        response = requests.get(url)
-        if response.status_code == 200 and len(response.content) > 0:
-            decoded_content = response.content.decode('utf-8')
-            reader = csv.reader(io.StringIO(decoded_content))
-            filas = list(reader)
-            if len(filas) > 1:
-                return filas[1:]
-    except Exception as e:
-        print(f"Error al leer la planilla web: {e}")
-    return []
-
-sesiones_usuarios = {}
-
-@app.route("/")
-def home():
-    return "¡El Bot de Pedidos de la Pizzería está activo y funcionando correctamente! 🍕🤖"
-
 @app.route("/webhook", methods=['POST'])
-def whatsapp_webhook():
-    incoming_msg = request.values.get('Body', '').strip().lower()
-    sender_number = request.values.get('From', '')
+def bot_whatsapp():
+    # Obtenemos el mensaje que envía el usuario y limpiamos espacios vacíos
+    incoming_msg = request.form.get('Body', '').strip()
     
     resp = MessagingResponse()
     msg = resp.message()
 
-    if sender_number not in sesiones_usuarios:
-        sesiones_usuarios[sender_number] = {"estado": "INICIO", "carrito": []}
-    
-    usuario = sesiones_usuarios[sender_number]
-    estado_actual = usuario["estado"]
+    # Opción 1: Catálogo de Productos
+    if incoming_msg == '1':
+        msg.body(
+            "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
+            "🍕 [P01] Pizza Muzza - $...\n"
+            "🍕 [P02] Pizza Especial - $...\n"
+            "🍕 [P03] Pizza Fugazzeta - $...\n"
+            "🥟 [E01] Empanada de Carne - $...\n"
+            "🥟 [E02] Empanada de Jamón y Queso - $...\n\n"
+            "Respondé con el código del producto para agregarlo o elegí otra opción."
+        )
 
-    if "hola" in incoming_msg or "menu" in incoming_msg or "inicio" in incoming_msg:
-        usuario["estado"] = "MENU"
-        usuario["carrito"] = []
+    # Opción 2: Promociones y Combos (CORREGIDA)
+    elif incoming_msg == '2':
+        msg.body(
+            "🔥 *PROMOCIONES Y COMBOS*:\n\n"
+            "⭐ [C01] Promo 1: 2 Pizzas Muzza + Fainá - $...\n"
+            "⭐ [C02] Promo 2: 1 Pizza Especial + 6 Empanadas - $...\n"
+            "⭐ [C03] Promo 3 (Congeladas): Pack x3 Pizzas - $10...\n\n"
+            "Respondé con el código de la promo para seleccionarla."
+        )
+
+    # Opción 3: Carrito Actual
+    elif incoming_msg == '3':
+        msg.body(
+            "🛒 *TU CARRITO ACTUAL*:\n\n"
+            "Aún no tenés productos cargados en tu pedido.\n\n"
+            "Escribí el código de lo que quieras sumar."
+        )
+
+    # Mensaje por defecto si escribe cualquier otra cosa
+    else:
         msg.body(
             "¡Hola! 👋 Bienvenido a nuestro servicio de pedidos automáticos.\n\n"
             "¿Qué te gustaría hacer hoy?\n"
@@ -54,103 +51,8 @@ def whatsapp_webhook():
             "3️⃣ Ver mi Carrito actual\n\n"
             "Respondé con el número de la opción."
         )
-    elif incoming_msg == "3":
-        usuario["estado"] = "CONFIRMACION"
-        if not usuario["carrito"]:
-            msg.body("🛒 Tu carrito está vacío. Escribí *1* para ver el catálogo o *hola* para empezar.")
-        else:
-            detalle = "🛒 *Tu Carrito Actual*:\n"
-            total = 0
-            for item in usuario["carrito"]:
-                precio_crudo = item['precio']
-                precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
-                precio_num_str = precio_limpio.replace('.', '').replace(',', '.')
-                
-                try:
-                    valor = float(precio_num_str)
-                except ValueError:
-                    valor = 0.0
-                
-                total += valor
-                detalle += f"- {item['nombre']}: ${precio_limpio}\n"
-                
-            detalle += f"\nTotal a pagar: *${total:,.2f}*\n\nRespondé *CONFIRMAR* para finalizar o *MENU* para seguir comprando."
-            msg.body(detalle)
-
-    elif estado_actual == "MENU":
-        if incoming_msg == "1":
-            filas = leer_google_sheet_publica("Menu")
-            if filas:
-                texto = "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
-                for r in filas:
-                    if len(r) >= 5:
-                        codigo = r[0].strip()
-                        producto = r[2].strip()
-                        precio_crudo = r[4].strip()
-                        precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
-                        if codigo:
-                            texto += f"🔹 *[{codigo}]* {producto} - ${precio_limpio}\n"
-                texto += "\nRespondé con el *Código* del producto para sumarlo, o *3* para ver tu carrito."
-                usuario["estado"] = "ESPERANDO_PRODUCTO"
-                msg.body(texto)
-            else:
-                msg.body("⚠️ No se pudieron leer los productos. Verificá que la planilla sea pública.")
-
-        elif incoming_msg == "2":
-            filas = leer_google_sheet_publica("Promos")
-            if filas:
-                texto = "🔥 *PROMOCIONES Y COMBOS*:\n\n"
-                for r in filas:
-                    if len(r) >= 4:
-                        codigo = r[0].strip()
-                        promo = r[1].strip()
-                        precio_crudo = r[3].strip()
-                        precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
-                        if codigo:
-                            texto += f"⭐ *[{codigo}]* {promo} - *${precio_limpio}*\n"
-                texto += "\nRespondé con el *Código* de la promo, o *3* para ver tu carrito."
-                usuario["estado"] = "ESPERANDO_PRODUCTO"
-                msg.body(texto)
-            else:
-                msg.body("⚠️ No se pudieron leer las promociones.")
-        else:
-            msg.body("Opción no válida. Por favor respondé 1, 2 o 3.")
-
-    elif estado_actual == "ESPERANDO_PRODUCTO":
-        if incoming_msg == "0":
-            usuario["estado"] = "MENU"
-            msg.body("Volviste al menú principal. Escribí 1, 2 o 3.")
-        else:
-            encontrado = None
-            for r in leer_google_sheet_publica("Menu"):
-                if len(r) >= 5 and r[0].strip().lower() == incoming_msg:
-                    encontrado = {"nombre": r[2].strip(), "precio": r[4].strip()}
-                    break
-            
-            if not encontrado:
-                for r in leer_google_sheet_publica("Promos"):
-                    if len(r) >= 4 and r[0].strip().lower() == incoming_msg:
-                        encontrado = {"nombre": r[1].strip(), "precio": r[3].strip()}
-                        break
-
-            if encontrado:
-                usuario["carrito"].append(encontrado)
-                precio_crudo = encontrado['precio']
-                precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
-                msg.body(f"✅ ¡Agregado: *{encontrado['nombre']}* (${precio_limpio})!\n\n¿Querés otro producto (escribí su código) o escribí *3* para ver tu carrito y finalizar?")
-            else:
-                msg.body("❌ Código no encontrado. Verificá el código en el catálogo, escribí *0* para volver o *3* para ver tu carrito.")
-
-    elif estado_actual == "CONFIRMACION":
-        if "confirmar" in incoming_msg:
-            msg.body("🎉 ¡Pedido confirmado con éxito! El local ya lo está preparando. ¡Muchas gracias! 🙌")
-            usuario["carrito"] = []
-            usuario["estado"] = "MENU"
-        else:
-            usuario["estado"] = "MENU"
-            msg.body("Operación cancelada. Escribí *hola* para empezar de nuevo.")
 
     return str(resp)
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True) 
+    app.run(host="0.0.0.0", port=10000)
