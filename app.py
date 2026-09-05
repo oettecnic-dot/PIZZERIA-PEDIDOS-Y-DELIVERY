@@ -10,13 +10,25 @@ SPREADSHEET_ID = "1JytqThEjlp_S5P51NkQ-0nLiXq5-2OUk9XMNAIKCe0"
 
 def leer_google_sheet_publica(nombre_pestana):
     try:
+        # Método 1: Exportación directa por nombre de solapa
         url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet={nombre_pestana}"
         response = requests.get(url)
-        if response.status_code == 200:
+        if response.status_code == 200 and len(response.content) > 0:
             decoded_content = response.content.decode('utf-8')
             reader = csv.reader(io.StringIO(decoded_content))
             filas = list(reader)
+            if len(filas) > 1:
+                return filas[1:]
+        
+        # Método 2: Exportación alternativa como archivo CSV web
+        url_alt = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=csv&sheet={nombre_pestana}"
+        response_alt = requests.get(url_alt)
+        if response_alt.status_code == 200:
+            decoded_content = response_alt.content.decode('utf-8')
+            reader = csv.reader(io.StringIO(decoded_content))
+            filas = list(reader)
             return filas[1:] if len(filas) > 1 else []
+            
     except Exception as e:
         print(f"Error al leer la planilla web: {e}")
     return []
