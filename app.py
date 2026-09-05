@@ -6,7 +6,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
-SPREADSHEET_ID = "1JytqThEjIp_S5P51NkQ-0nLlXq5-2OEuk9XMNAlKCe0"
+SPREADSHEET_ID = "1JytqThEjlp_S5P51NkQ-0nLiXq5-2OUk9XMNAIKCe0"
 
 def leer_google_sheet_publica(nombre_pestana):
     try:
@@ -60,7 +60,6 @@ def whatsapp_webhook():
             detalle = "🛒 *Tu Carrito Actual*:\n"
             total = 0
             for item in usuario["carrito"]:
-                # Limpiamos el precio extrayendo solo números y puntos/comas
                 precio_crudo = item['precio']
                 precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
                 precio_num_str = precio_limpio.replace('.', '').replace(',', '.')
@@ -81,13 +80,14 @@ def whatsapp_webhook():
             filas = leer_google_sheet_publica("Menú y Productos")
             if filas:
                 texto = "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
-                for r in filas[:10]:
+                for r in filas:
                     if len(r) >= 5:
                         codigo = r[0].strip()
                         producto = r[2].strip()
-                        precio = r[4].strip()
+                        precio_crudo = r[4].strip()
+                        precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
                         if codigo:
-                            texto += f"🔹 *[{codigo}]* {producto} - ${precio}\n"
+                            texto += f"🔹 *[{codigo}]* {producto} - ${precio_limpio}\n"
                 texto += "\nRespondé con el *Código* del producto (ej: P01) para sumarlo, o *3* para ver tu carrito."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
@@ -102,9 +102,10 @@ def whatsapp_webhook():
                     if len(r) >= 4:
                         codigo = r[0].strip()
                         promo = r[1].strip()
-                        precio = r[3].strip()
+                        precio_crudo = r[3].strip()
+                        precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
                         if codigo:
-                            texto += f"⭐ *[{codigo}]* {promo} - *${precio}*\n"
+                            texto += f"⭐ *[{codigo}]* {promo} - *${precio_limpio}*\n"
                 texto += "\nRespondé con el *Código* de la promo (ej: C01), o *3* para ver tu carrito."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
@@ -132,7 +133,9 @@ def whatsapp_webhook():
 
             if encontrado:
                 usuario["carrito"].append(encontrado)
-                msg.body(f"✅ ¡Agregado: *{encontrado['nombre']}* (${encontrado['precio']})!\n\n¿Querés otro producto (escribí su código) o escribí *3* para ver tu carrito y finalizar?")
+                precio_crudo = encontrado['precio']
+                precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
+                msg.body(f"✅ ¡Agregado: *{encontrado['nombre']}* (${precio_limpio})!\n\n¿Querés otro producto (escribí su código) o escribí *3* para ver tu carrito y finalizar?")
             else:
                 msg.body("❌ Código no encontrado. Verificá el código en el catálogo, escribí *0* para volver o *3* para ver tu carrito.")
 
