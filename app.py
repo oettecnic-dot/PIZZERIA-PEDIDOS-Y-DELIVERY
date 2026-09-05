@@ -6,7 +6,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
-# ID de la Google Sheet pública del comerciante
+# ID de tu Google Sheet pública
 SPREADSHEET_ID = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
 
 def leer_google_sheet_publica(nombre_pestana):
@@ -15,8 +15,18 @@ def leer_google_sheet_publica(nombre_pestana):
         response = requests.get(url)
         if response.status_code == 200:
             decoded_content = response.content.decode('utf-8')
-            reader = csv.DictReader(io.StringIO(decoded_content))
-            return list(reader)
+            reader = csv.reader(io.StringIO(decoded_content))
+            filas = list(reader)
+            if len(filas) <= 1:
+                return []
+            # Limpiamos espacios en las cabeceras para evitar errores
+            cabeceras = [h.strip() for h in filas[0]]
+            resultados = []
+            for fila in filas[1:]:
+                if len(fila) >= len(cabeceras):
+                    item = {cabeceras[i]: fila[i].strip() for i in range(len(cabeceras))}
+                    resultados.append(item)
+            return resultados
     except Exception as e:
         print(f"Error al leer la planilla: {e}")
     return []
@@ -59,24 +69,31 @@ def whatsapp_webhook():
             if registros:
                 texto = "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
                 for r in registros[:10]:
-                    texto += f"🔹 *[{r.get('Código')}]* {r.get('Producto / Variedad')} - ${r.get('Precio ($)')}\n"
+                    # Buscamos las claves de forma flexible
+                    codigo = r.get('Código') or r.get('Codigo') or ''
+                    producto = r.get('Producto / Variedad') or r.get('Producto') or ''
+                    precio = r.get('Precio ($)') or r.get('Precio') or ''
+                    texto += f"🔹 *[{codigo}]* {producto} - ${precio}\n"
                 texto += "\nRespondé con el *Código* del producto (ej: P01) para sumarlo, o *0* para volver."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ Error al leer el catálogo en tiempo real.")
+                msg.body("⚠️ No se pudieron leer los productos. Verificá que la solapa se llame exactamente 'Menú y Productos'.")
 
         elif incoming_msg == "2":
             registros = leer_google_sheet_publica("Promociones y Combos")
             if registros:
                 texto = "🔥 *PROMOCIONES Y COMBOS*:\n\n"
                 for r in registros:
-                    texto += f"⭐ *[{r.get('Código Combo')}]* {r.get('Nombre de la Promoción')} - *${r.get('Precio Promo ($)')}*\n"
+                    codigo = r.get('Código Combo') or r.get('Código') or ''
+                    promo = r.get('Nombre de la Promoción') or r.get('Nombre') or ''
+                    precio = r.get('Precio Promo ($)') or r.get('Precio ($)') or ''
+                    texto += f"⭐ *[{codigo}]* {promo} - *${precio}*\n"
                 texto += "\nRespondé con el *Código* de la promo (ej: PR01), o *0* para volver."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ Error al leer las promos.")
+                msg.body("⚠️ No se pudieron leer las promos.")
 
         elif incoming_msg == "3":
             if not usuario["carrito"]:
@@ -102,10 +119,10 @@ def whatsapp_webhook():
             for solapa in ["Menú y Productos", "Promociones y Combos"]:
                 registros = leer_google_sheet_publica(solapa)
                 for r in registros:
-                    cod = str(r.get('Código') or r.get('Código Combo') or '').strip().lower()
+                    cod = str(r.get('Código') or r.get('Código Combo') or r.get('Codigo') or '').strip().lower()
                     if cod == incoming_msg:
-                        nombre = r.get('Producto / Variedad') or r.get('Nombre de la Promoción')
-                        precio = r.get('Precio ($)') or r.get('Precio Promo ($)')
+                        nombre = r.get('Producto / Variedad') or r.get('Nombre de la Promoción') or r.get('Producto') or ''
+                        precio = r.get('Precio ($)') or r.get('Precio Promo ($)') or r.get('Precio') or '0'
                         encontrado = {"nombre": nombre, "precio": precio}
                         break
                 if encontrado:
