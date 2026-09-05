@@ -6,6 +6,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
+# ID de la Google Sheet del comercio (cada vez que el dueño edite su planilla web, el bot leerá los cambios al instante)
 SPREADSHEET_ID = "1kgS09pgPEeJF1EOLSr2Klcfo8TUWB0oW"
 
 def leer_google_sheet_publica(nombre_pestana):
@@ -18,7 +19,7 @@ def leer_google_sheet_publica(nombre_pestana):
             filas = list(reader)
             return filas[1:] if len(filas) > 1 else []
     except Exception as e:
-        print(f"Error al leer la planilla: {e}")
+        print(f"Error al leer la planilla web: {e}")
     return []
 
 sesiones_usuarios = {}
@@ -52,6 +53,19 @@ def whatsapp_webhook():
             "3️⃣ Ver mi Carrito actual\n\n"
             "Respondé con el número de la opción."
         )
+    elif incoming_msg == "3":
+        usuario["estado"] = "CONFIRMACION"
+        if not usuario["carrito"]:
+            msg.body("🛒 Tu carrito está vacío. Escribí *1* para ver el catálogo o *hola* para empezar.")
+        else:
+            detalle = "🛒 *Tu Carrito Actual*:\n"
+            total = 0
+            for item in usuario["carrito"]:
+                detalle += f"- {item['nombre']}: ${item['precio']}\n"
+                limpio = item['precio'].replace('.', '').replace(',', '.')
+                total += float(limpio) if limpio.replace('.', '', 1).isdigit() else 0
+            detalle += f"\nTotal a pagar: *${total}*\n\nRespondé *CONFIRMAR* para finalizar o *MENU* para seguir comprando."
+            msg.body(detalle)
 
     elif estado_actual == "MENU":
         if incoming_msg == "1":
@@ -65,11 +79,11 @@ def whatsapp_webhook():
                         precio = r[4].strip()   # Columna E: Precio ($)
                         if codigo:
                             texto += f"🔹 *[{codigo}]* {producto} - ${precio}\n"
-                texto += "\nRespondé con el *Código* del producto (ej: P01) para sumarlo, o *0* para volver."
+                texto += "\nRespondé con el *Código* del producto (ej: P01) para sumarlo, o *3* para ver tu carrito."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer los productos. Verificá que el enlace esté abierto como 'Cualquier persona con el enlace'.")
+                msg.body("⚠️ No se pudieron leer los productos. Verificá que la solapa se llame 'Menú y Productos' y esté configurada como pública (Lector con enlace).")
 
         elif incoming_msg == "2":
             filas = leer_google_sheet_publica("Promociones y Combos")
@@ -82,24 +96,11 @@ def whatsapp_webhook():
                         precio = r[3].strip()
                         if codigo:
                             texto += f"⭐ *[{codigo}]* {promo} - *${precio}*\n"
-                texto += "\nRespondé con el *Código* de la promo (ej: C01), o *0* para volver."
+                texto += "\nRespondé con el *Código* de la promo (ej: C01), o *3* para ver tu carrito."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
                 msg.body("⚠️ No se pudieron leer las promociones.")
-
-        elif incoming_msg == "3":
-            if not usuario["carrito"]:
-                msg.body("🛒 Tu carrito está vacío. Escribí *menu* para ver las opciones.")
-            else:
-                detalle = "🛒 *Tu Carrito Actual*:\n"
-                total = 0
-                for item in usuario["carrito"]:
-                    detalle += f"- {item['nombre']}: ${item['precio']}\n"
-                    total += float(item['precio'].replace('.', '').replace(',', '.'))
-                detalle += f"\nTotal a pagar: *${total}*\n\nRespondé *CONFIRMAR* para finalizar o *MENU* para seguir comprando."
-                usuario["estado"] = "CONFIRMACION"
-                msg.body(detalle)
         else:
             msg.body("Opción no válida. Por favor respondé 1, 2 o 3.")
 
@@ -122,9 +123,9 @@ def whatsapp_webhook():
 
             if encontrado:
                 usuario["carrito"].append(encontrado)
-                msg.body(f"✅ ¡Agregado: *{encontrado['nombre']}* (${encontrado['precio']})!\n\n¿Querés otro producto (escribí su código) o ver tu carrito escribiendo *3*?")
+                msg.body(f"✅ ¡Agregado: *{encontrado['nombre']}* (${encontrado['precio']})!\n\n¿Querés otro producto (escribí su código) o escribí *3* para ver tu carrito y finalizar?")
             else:
-                msg.body("❌ Código no encontrado. Verificá el código en el catálogo o escribí *0* para volver.")
+                msg.body("❌ Código no encontrado. Verificá el código en el catálogo, escribí *0* para volver o *3* para ver tu carrito.")
 
     elif estado_actual == "CONFIRMACION":
         if "confirmar" in incoming_msg:
