@@ -1,37 +1,28 @@
-import io
 import openpyxl
-import requests
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
-SPREADSHEET_ID = "1kgS09pgPEeJF1EOLSr2Klcfo8TUWB0oW"
-
-def leer_excel_desde_drive(nombre_pestana):
+def leer_excel_local(nombre_pestana):
     try:
-        url = f"https://docs.google.com/uc?export=download&id={SPREADSHEET_ID}"
-        response = requests.get(url)
-        if response.status_code == 200:
-            wb = openpyxl.load_workbook(io.BytesIO(response.content), data_only=True)
-            
-            # Buscamos la solapa de forma flexible ignorando espacios o mayúsculas
-            pestana_encontrada = None
-            for name in wb.sheetnames:
-                if name.strip().lower() == nombre_pestana.strip().lower():
-                    pestana_encontrada = name
-                    break
-            
-            if pestana_encontrada:
-                sheet = wb[pestana_encontrada]
-                filas = []
-                for row in sheet.iter_rows(values_only=True):
-                    fila_str = [str(cell).strip() if cell is not None else "" for cell in row]
-                    if any(fila_str):
-                        filas.append(fila_str)
-                return filas[1:] if len(filas) > 1 else []
+        wb = openpyxl.load_workbook("menu_y_promos_comercio.xlsx", data_only=True)
+        pestana_encontrada = None
+        for name in wb.sheetnames:
+            if name.strip().lower() == nombre_pestana.strip().lower():
+                pestana_encontrada = name
+                break
+        
+        if pestana_encontrada:
+            sheet = wb[pestana_encontrada]
+            filas = []
+            for row in sheet.iter_rows(values_only=True):
+                fila_str = [str(cell).strip() if cell is not None else "" for cell in row]
+                if any(fila_str):
+                    filas.append(fila_str)
+            return filas[1:] if len(filas) > 1 else []
     except Exception as e:
-        print(f"Error al leer el excel: {e}")
+        print(f"Error al leer el excel local: {e}")
     return []
 
 sesiones_usuarios = {}
@@ -68,7 +59,7 @@ def whatsapp_webhook():
 
     elif estado_actual == "MENU":
         if incoming_msg == "1":
-            filas = leer_excel_desde_drive("Menú y Productos")
+            filas = leer_excel_local("Menú y Productos")
             if filas:
                 texto = "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
                 for r in filas[:10]:
@@ -82,10 +73,10 @@ def whatsapp_webhook():
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer los productos del archivo Excel.")
+                msg.body("⚠️ No se pudieron leer los productos del archivo Excel local.")
 
         elif incoming_msg == "2":
-            filas = leer_excel_desde_drive("Promociones y Combos")
+            filas = leer_excel_local("Promociones y Combos")
             if filas:
                 texto = "🔥 *PROMOCIONES Y COMBOS*:\n\n"
                 for r in filas:
@@ -123,13 +114,13 @@ def whatsapp_webhook():
             msg.body("Volviste al menú principal. Escribí 1, 2 o 3.")
         else:
             encontrado = None
-            for r in leer_excel_desde_drive("Menú y Productos"):
+            for r in leer_excel_local("Menú y Productos"):
                 if len(r) >= 5 and r[0].lower() == incoming_msg:
                     encontrado = {"nombre": r[2], "precio": r[4]}
                     break
             
             if not encontrado:
-                for r in leer_excel_desde_drive("Promociones y Combos"):
+                for r in leer_excel_local("Promociones y Combos"):
                     if len(r) >= 4 and r[0].lower() == incoming_msg:
                         encontrado = {"nombre": r[1], "precio": r[3]}
                         break
