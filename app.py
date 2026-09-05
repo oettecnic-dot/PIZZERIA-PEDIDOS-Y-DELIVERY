@@ -77,7 +77,7 @@ def whatsapp_webhook():
 
     elif estado_actual == "MENU":
         if incoming_msg == "1":
-            filas = leer_google_sheet_publica("Menú y Productos")
+            filas = leer_google_sheet_publica("Menu")
             if filas:
                 texto = "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
                 for r in filas:
@@ -88,14 +88,14 @@ def whatsapp_webhook():
                         precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
                         if codigo:
                             texto += f"🔹 *[{codigo}]* {producto} - ${precio_limpio}\n"
-                texto += "\nRespondé con el *Código* del producto (ej: P01) para sumarlo, o *3* para ver tu carrito."
+                texto += "\nRespondé con el *Código* del producto para sumarlo, o *3* para ver tu carrito."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer los productos. Verificá que la solapa se llame 'Menú y Productos' y esté configurada como pública.")
+                msg.body("⚠️ No se pudieron leer los productos. Verificá que la solapa de Google Sheets se llame exactamente 'Menu'.")
 
         elif incoming_msg == "2":
-            filas = leer_google_sheet_publica("Promociones y Combos")
+            filas = leer_google_sheet_publica("Promos")
             if filas:
                 texto = "🔥 *PROMOCIONES Y COMBOS*:\n\n"
                 for r in filas:
@@ -106,11 +106,11 @@ def whatsapp_webhook():
                         precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
                         if codigo:
                             texto += f"⭐ *[{codigo}]* {promo} - *${precio_limpio}*\n"
-                texto += "\nRespondé con el *Código* de la promo (ej: C01), o *3* para ver tu carrito."
+                texto += "\nRespondé con el *Código* de la promo, o *3* para ver tu carrito."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer las promociones.")
+                msg.body("⚠️ No se pudieron leer las promociones. Verificá que la solapa se llame 'Promos'.")
         else:
             msg.body("Opción no válida. Por favor respondé 1, 2 o 3.")
 
@@ -120,13 +120,13 @@ def whatsapp_webhook():
             msg.body("Volviste al menú principal. Escribí 1, 2 o 3.")
         else:
             encontrado = None
-            for r in leer_google_sheet_publica("Menú y Productos"):
+            for r in leer_google_sheet_publica("Menu"):
                 if len(r) >= 5 and r[0].strip().lower() == incoming_msg:
                     encontrado = {"nombre": r[2].strip(), "precio": r[4].strip()}
                     break
             
             if not encontrado:
-                for r in leer_google_sheet_publica("Promociones y Combos"):
+                for r in leer_google_sheet_publica("Promos"):
                     if len(r) >= 4 and r[0].strip().lower() == incoming_msg:
                         encontrado = {"nombre": r[1].strip(), "precio": r[3].strip()}
                         break
