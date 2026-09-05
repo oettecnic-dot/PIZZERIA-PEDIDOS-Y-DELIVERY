@@ -7,7 +7,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 app = Flask(__name__)
 
 # Reemplazá este ID por el ID real de tu Google Sheet (lo sacás de la URL de tu planilla)
-SPREADSHEET_ID = "PEGA_AQUÍ_EL_ID_DE_TU_GOOGLE_SHEET"
+SPREADSHEET_ID = "2PACX-1vQ4Y7yEsOSAV1k4iLafdhPhj-76TXdq4UfqX3Ky6Y6hFpoD224T2DjhAThcjPrWQQ/pub?output=csv"
 
 def leer_google_sheet_publica(nombre_pestana):
     try:
