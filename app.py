@@ -6,7 +6,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
-SPREADSHEET_ID = "https://docs.google.com/spreadsheets/d/1JytqThEjIp_S5P51NkQ-0nLlXq5-2OEuk9XMNAlKCe0/edit?usp=sharing"
+SPREADSHEET_ID = "1JytqThEjIp_S5P51NkQ-0nLlXq5-2OEuk9XMNAlKCe0"
 
 def leer_google_sheet_publica(nombre_pestana):
     try:
