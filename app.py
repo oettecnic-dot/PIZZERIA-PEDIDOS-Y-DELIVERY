@@ -17,16 +17,8 @@ def leer_google_sheet_publica(nombre_pestana):
             decoded_content = response.content.decode('utf-8')
             reader = csv.reader(io.StringIO(decoded_content))
             filas = list(reader)
-            if len(filas) <= 1:
-                return []
-            # Limpiamos espacios en las cabeceras para evitar errores
-            cabeceras = [h.strip() for h in filas[0]]
-            resultados = []
-            for fila in filas[1:]:
-                if len(fila) >= len(cabeceras):
-                    item = {cabeceras[i]: fila[i].strip() for i in range(len(cabeceras))}
-                    resultados.append(item)
-            return resultados
+            # Retornamos todas las filas omitiendo la cabecera
+            return filas[1:] if len(filas) > 1 else []
     except Exception as e:
         print(f"Error al leer la planilla: {e}")
     return []
@@ -65,35 +57,36 @@ def whatsapp_webhook():
 
     elif estado_actual == "MENU":
         if incoming_msg == "1":
-            registros = leer_google_sheet_publica("Menú y Productos")
-            if registros:
+            filas = leer_google_sheet_publica("Menú y Productos")
+            if filas:
                 texto = "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
-                for r in registros[:10]:
-                    # Buscamos las claves de forma flexible
-                    codigo = r.get('Código') or r.get('Codigo') or ''
-                    producto = r.get('Producto / Variedad') or r.get('Producto') or ''
-                    precio = r.get('Precio ($)') or r.get('Precio') or ''
-                    texto += f"🔹 *[{codigo}]* {producto} - ${precio}\n"
+                for r in filas[:10]: # Mostramos los primeros 10 productos
+                    if len(r) >= 5:
+                        codigo = r[0].strip()
+                        producto = r[2].strip()
+                        precio = r[4].strip()
+                        texto += f"🔹 *[{codigo}]* {producto} - ${precio}\n"
                 texto += "\nRespondé con el *Código* del producto (ej: P01) para sumarlo, o *0* para volver."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer los productos. Verificá que la solapa se llame exactamente 'Menú y Productos'.")
+                msg.body("⚠️ No se pudieron leer los productos de la solapa 'Menú y Productos'.")
 
         elif incoming_msg == "2":
-            registros = leer_google_sheet_publica("Promociones y Combos")
-            if registros:
+            filas = leer_google_sheet_publica("Promociones y Combos")
+            if filas:
                 texto = "🔥 *PROMOCIONES Y COMBOS*:\n\n"
-                for r in registros:
-                    codigo = r.get('Código Combo') or r.get('Código') or ''
-                    promo = r.get('Nombre de la Promoción') or r.get('Nombre') or ''
-                    precio = r.get('Precio Promo ($)') or r.get('Precio ($)') or ''
-                    texto += f"⭐ *[{codigo}]* {promo} - *${precio}*\n"
+                for r in filas:
+                    if len(r) >= 4:
+                        codigo = r[0].strip()
+                        promo = r[1].strip()
+                        precio = r[3].strip()
+                        texto += f"⭐ *[{codigo}]* {promo} - *${precio}*\n"
                 texto += "\nRespondé con el *Código* de la promo (ej: PR01), o *0* para volver."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer las promos.")
+                msg.body("⚠️ No se pudieron leer las promos de la solapa 'Promociones y Combos'.")
 
         elif incoming_msg == "3":
             if not usuario["carrito"]:
@@ -116,17 +109,18 @@ def whatsapp_webhook():
             msg.body("Volviste al menú principal. Escribí 1, 2 o 3.")
         else:
             encontrado = None
-            for solapa in ["Menú y Productos", "Promociones y Combos"]:
-                registros = leer_google_sheet_publica(solapa)
-                for r in registros:
-                    cod = str(r.get('Código') or r.get('Código Combo') or r.get('Codigo') or '').strip().lower()
-                    if cod == incoming_msg:
-                        nombre = r.get('Producto / Variedad') or r.get('Nombre de la Promoción') or r.get('Producto') or ''
-                        precio = r.get('Precio ($)') or r.get('Precio Promo ($)') or r.get('Precio') or '0'
-                        encontrado = {"nombre": nombre, "precio": precio}
-                        break
-                if encontrado:
+            # Buscamos en Menú y Productos
+            for r in leer_google_sheet_publica("Menú y Productos"):
+                if len(r) >= 5 and r[0].strip().lower() == incoming_msg:
+                    encontrado = {"nombre": r[2].strip(), "precio": r[4].strip()}
                     break
+            
+            # Si no está en productos, buscamos en promos
+            if not encontrado:
+                for r in leer_google_sheet_publica("Promociones y Combos"):
+                    if len(r) >= 4 and r[0].strip().lower() == incoming_msg:
+                        encontrado = {"nombre": r[1].strip(), "precio": r[3].strip()}
+                        break
 
             if encontrado:
                 usuario["carrito"].append(encontrado)
