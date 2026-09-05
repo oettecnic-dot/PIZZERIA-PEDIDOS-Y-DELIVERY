@@ -10,7 +10,8 @@ SPREADSHEET_ID = "1JytqThEjlp_S5P51NkQ-0nLiXq5-2OUk9XMNAIKCe0"
 
 def leer_google_sheet_publica(nombre_pestana):
     try:
-        url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet={nombre_pestana}"
+        # Lee directamente la primera solapa de la planilla sin importar el nombre escrito
+        url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:csv"
         response = requests.get(url)
         if response.status_code == 200 and len(response.content) > 0:
             decoded_content = response.content.decode('utf-8')
@@ -18,15 +19,6 @@ def leer_google_sheet_publica(nombre_pestana):
             filas = list(reader)
             if len(filas) > 1:
                 return filas[1:]
-        
-        url_alt = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=csv&sheet={nombre_pestana}"
-        response_alt = requests.get(url_alt)
-        if response_alt.status_code == 200:
-            decoded_content = response_alt.content.decode('utf-8')
-            reader = csv.reader(io.StringIO(decoded_content))
-            filas = list(reader)
-            return filas[1:] if len(filas) > 1 else []
-            
     except Exception as e:
         print(f"Error al leer la planilla web: {e}")
     return []
@@ -87,7 +79,7 @@ def whatsapp_webhook():
 
     elif estado_actual == "MENU":
         if incoming_msg == "1":
-            filas = leer_google_sheet_publica("Menú y Productos")
+            filas = leer_google_sheet_publica("Menu")
             if filas:
                 texto = "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
                 for r in filas:
@@ -102,10 +94,10 @@ def whatsapp_webhook():
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer los productos. Verificá que la solapa se llame exactamente 'Menú y Productos'.")
+                msg.body("⚠️ No se pudieron leer los productos. Verificá que la planilla sea pública.")
 
         elif incoming_msg == "2":
-            filas = leer_google_sheet_publica("Promociones y Combos")
+            filas = leer_google_sheet_publica("Promos")
             if filas:
                 texto = "🔥 *PROMOCIONES Y COMBOS*:\n\n"
                 for r in filas:
@@ -120,7 +112,7 @@ def whatsapp_webhook():
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer las promociones. Verificá que la solapa se llame 'Promociones y Combos'.")
+                msg.body("⚠️ No se pudieron leer las promociones.")
         else:
             msg.body("Opción no válida. Por favor respondé 1, 2 o 3.")
 
@@ -130,13 +122,13 @@ def whatsapp_webhook():
             msg.body("Volviste al menú principal. Escribí 1, 2 o 3.")
         else:
             encontrado = None
-            for r in leer_google_sheet_publica("Menú y Productos"):
+            for r in leer_google_sheet_publica("Menu"):
                 if len(r) >= 5 and r[0].strip().lower() == incoming_msg:
                     encontrado = {"nombre": r[2].strip(), "precio": r[4].strip()}
                     break
             
             if not encontrado:
-                for r in leer_google_sheet_publica("Promociones y Combos"):
+                for r in leer_google_sheet_publica("Promos"):
                     if len(r) >= 4 and r[0].strip().lower() == incoming_msg:
                         encontrado = {"nombre": r[1].strip(), "precio": r[3].strip()}
                         break
