@@ -8,11 +8,12 @@ app = Flask(__name__)
 
 SPREADSHEET_ID = "1uzGGa7y_hIZ5BWlPKD_YIyO491V2b5QOroFODVDyvh0"
 
-def leer_google_sheet_publica(nombre_pestana):
+def leer_google_sheet_publica(tipo):
     try:
-        url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet={nombre_pestana}"
+        gid = "1487586843" if tipo == "promos" else "1579446932"
+        url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid={gid}"
         response = requests.get(url)
-        if response.status_code == 200:
+        if response.status_code == 200 and len(response.content) > 0:
             decoded_content = response.content.decode('utf-8')
             reader = csv.reader(io.StringIO(decoded_content))
             filas = list(reader)
@@ -60,7 +61,6 @@ def whatsapp_webhook():
             detalle = "🛒 *Tu Carrito Actual*:\n"
             total = 0
             for item in usuario["carrito"]:
-                # Limpiamos el precio extrayendo solo números y puntos/comas
                 precio_crudo = item['precio']
                 precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
                 precio_num_str = precio_limpio.replace('.', '').replace(',', '.')
@@ -78,34 +78,35 @@ def whatsapp_webhook():
 
     elif estado_actual == "MENU":
         if incoming_msg == "1":
-            filas = leer_google_sheet_publica("Menú y Productos")
+            filas = leer_google_sheet_publica("menu")
             if filas:
                 texto = "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
-                for r in filas[:10]:
-                    if len(r) >= 5:
+                for r in filas:
+                    # Validamos que la fila tenga datos y un código válido en la columna A
+                    if len(r) >= 5 and r[0].strip() and r[2].strip():
                         codigo = r[0].strip()
                         producto = r[2].strip()
-                        precio = r[4].strip()
-                        if codigo:
-                            texto += f"🔹 *[{codigo}]* {producto} - ${precio}\n"
-                texto += "\nRespondé con el *Código* del producto (ej: P01) para sumarlo, o *3* para ver tu carrito."
+                        precio_crudo = r[4].strip()
+                        precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
+                        texto += f"🔹 *[{codigo}]* {producto} - ${precio_limpio}\n"
+                texto += "\nRespondé con el *Código* del producto para sumarlo, o *3* para ver tu carrito."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer los productos. Verificá que la solapa se llame 'Menú y Productos' y esté configurada como pública.")
+                msg.body("⚠️ No se pudieron leer los productos.")
 
         elif incoming_msg == "2":
-            filas = leer_google_sheet_publica("Promociones y Combos")
+            filas = leer_google_sheet_publica("promos")
             if filas:
                 texto = "🔥 *PROMOCIONES Y COMBOS*:\n\n"
                 for r in filas:
-                    if len(r) >= 4:
+                    if len(r) >= 4 and r[0].strip() and r[1].strip():
                         codigo = r[0].strip()
                         promo = r[1].strip()
-                        precio = r[3].strip()
-                        if codigo:
-                            texto += f"⭐ *[{codigo}]* {promo} - *${precio}*\n"
-                texto += "\nRespondé con el *Código* de la promo (ej: C01), o *3* para ver tu carrito."
+                        precio_crudo = r[3].strip()
+                        precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
+                        texto += f"⭐ *[{codigo}]* {promo} - *${precio_limpio}*\n"
+                texto += "\nRespondé con el *Código* de la promo, o *3* para ver tu carrito."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
@@ -119,20 +120,22 @@ def whatsapp_webhook():
             msg.body("Volviste al menú principal. Escribí 1, 2 o 3.")
         else:
             encontrado = None
-            for r in leer_google_sheet_publica("Menú y Productos"):
+            for r in leer_google_sheet_publica("menu"):
                 if len(r) >= 5 and r[0].strip().lower() == incoming_msg:
                     encontrado = {"nombre": r[2].strip(), "precio": r[4].strip()}
                     break
             
             if not encontrado:
-                for r in leer_google_sheet_publica("Promociones y Combos"):
+                for r in leer_google_sheet_publica("promos"):
                     if len(r) >= 4 and r[0].strip().lower() == incoming_msg:
                         encontrado = {"nombre": r[1].strip(), "precio": r[3].strip()}
                         break
 
             if encontrado:
                 usuario["carrito"].append(encontrado)
-                msg.body(f"✅ ¡Agregado: *{encontrado['nombre']}* (${encontrado['precio']})!\n\n¿Querés otro producto (escribí su código) o escribí *3* para ver tu carrito y finalizar?")
+                precio_crudo = encontrado['precio']
+                precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
+                msg.body(f"✅ ¡Agregado: *{encontrado['nombre']}* (${precio_limpio})!\n\n¿Querés otro producto (escribí su código) o escribí *3* para ver tu carrito y finalizar?")
             else:
                 msg.body("❌ Código no encontrado. Verificá el código en el catálogo, escribí *0* para volver o *3* para ver tu carrito.")
 
