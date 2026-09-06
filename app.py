@@ -6,8 +6,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
-# ID de la Google Sheet del comercio (cada vez que el dueño edite su planilla web, el bot leerá los cambios al instante)
-SPREADSHEET_ID = "1kgS09pgPEeJF1EOLSr2Klcfo8TUWB0oW"
+SPREADSHEET_ID = "1uzGGa7y_hIZ5BWlPKD_YIyO491V2b5QOroFODVDyvh0"
 
 def leer_google_sheet_publica(nombre_pestana):
     try:
@@ -61,10 +60,20 @@ def whatsapp_webhook():
             detalle = "🛒 *Tu Carrito Actual*:\n"
             total = 0
             for item in usuario["carrito"]:
-                detalle += f"- {item['nombre']}: ${item['precio']}\n"
-                limpio = item['precio'].replace('.', '').replace(',', '.')
-                total += float(limpio) if limpio.replace('.', '', 1).isdigit() else 0
-            detalle += f"\nTotal a pagar: *${total}*\n\nRespondé *CONFIRMAR* para finalizar o *MENU* para seguir comprando."
+                # Limpiamos el precio extrayendo solo números y puntos/comas
+                precio_crudo = item['precio']
+                precio_limpio = ''.join(c for c in precio_crudo if c.isdigit() or c in '.,')
+                precio_num_str = precio_limpio.replace('.', '').replace(',', '.')
+                
+                try:
+                    valor = float(precio_num_str)
+                except ValueError:
+                    valor = 0.0
+                
+                total += valor
+                detalle += f"- {item['nombre']}: ${precio_limpio}\n"
+                
+            detalle += f"\nTotal a pagar: *${total:,.2f}*\n\nRespondé *CONFIRMAR* para finalizar o *MENU* para seguir comprando."
             msg.body(detalle)
 
     elif estado_actual == "MENU":
@@ -74,16 +83,16 @@ def whatsapp_webhook():
                 texto = "📋 *CATÁLOGO DE PRODUCTOS*:\n\n"
                 for r in filas[:10]:
                     if len(r) >= 5:
-                        codigo = r[0].strip()   # Columna A: Código
-                        producto = r[2].strip() # Columna C: Producto / Variedad
-                        precio = r[4].strip()   # Columna E: Precio ($)
+                        codigo = r[0].strip()
+                        producto = r[2].strip()
+                        precio = r[4].strip()
                         if codigo:
                             texto += f"🔹 *[{codigo}]* {producto} - ${precio}\n"
                 texto += "\nRespondé con el *Código* del producto (ej: P01) para sumarlo, o *3* para ver tu carrito."
                 usuario["estado"] = "ESPERANDO_PRODUCTO"
                 msg.body(texto)
             else:
-                msg.body("⚠️ No se pudieron leer los productos. Verificá que la solapa se llame 'Menú y Productos' y esté configurada como pública (Lector con enlace).")
+                msg.body("⚠️ No se pudieron leer los productos. Verificá que la solapa se llame 'Menú y Productos' y esté configurada como pública.")
 
         elif incoming_msg == "2":
             filas = leer_google_sheet_publica("Promociones y Combos")
