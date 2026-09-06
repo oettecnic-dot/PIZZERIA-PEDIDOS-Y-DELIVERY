@@ -69,7 +69,7 @@ HTML_CHAT = """
 """
 
 # URL de exportación CSV directa con el ID y el gid exacto de tu planilla
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1R8p60ENEFrB5yQcvPcog7fv5Ama3vyFKUR9hp/export?format=csv&gid=1835820971"
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/"1uzGGa7y_hIZ5BWlPKD_YIyO491V2b5QOroFODVDyvh0"
 
 # 1. Ruta principal para ver la interfaz en el navegador (GET)
 @app.route("/", methods=["GET"])
