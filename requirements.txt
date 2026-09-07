@@ -3,3 +3,4 @@ openpyxl==3.1.2
 gunicorn==21.2.0
 requests==2.31.0
 twilio==9.0.0
+pandas
