@@ -17,7 +17,7 @@ HTML_CHAT = """
 </html>
 """
 
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1uzGGa7y_hiZ5B1PKD_YiY0491V2b5QoRoF0VDyYvh0"
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1uzGGa7y_hiZ5B1PKD_YiY0491V2b5QoRoF0VDyYvh0/export?format=csv"
 
 # 1. Ruta principal para ver la interfaz en el navegador (GET)
 @app.route("/", methods=["GET"])
