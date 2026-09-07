@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template_string
 from twilio.twiml.messaging_response import MessagingResponse
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -17,6 +18,7 @@ HTML_CHAT = """
 </html>
 """
 
+# URL corregida para exportar la planilla de Google Sheets a CSV
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1uzGGa7y_hiZ5B1PKD_YiY0491V2b5QoRoF0VDyYvh0/export?format=csv"
 
 # 1. Ruta principal para ver la interfaz en el navegador (GET)
@@ -43,9 +45,22 @@ def webhook():
     resp = MessagingResponse()
     msg = resp.message()
 
-    # Lógica de respuestas del bot (incluyendo variantes con y sin tilde)
+    # Lógica de respuestas del bot leída desde Google Sheets
     if "catalogo" in user_message or "catálogo" in user_message:
-        msg.body("Aquí tienes nuestro catálogo de pizzas y promos disponibles. ¡Escribe tu pedido cuando estés listo!")
+        try:
+            # Descarga y lee los datos de la planilla en formato CSV
+            df = pd.read_csv(SHEET_CSV_URL)
+            
+            catalogo_texto = "🍕 *Catálogo y Promos* 🍕\n\n"
+            for index, row in df.iterrows():
+                # Toma las primeras columnas de la fila (ej. nombre del producto y precio)
+                nombre = str(row.iloc[0]) if len(row) > 0 else ""
+                precio = str(row.iloc[1]) if len(row) > 1 else ""
+                catalogo_texto += f"• {nombre}: ${precio}\n"
+                
+            msg.body(catalogo_texto)
+        except Exception as e:
+            msg.body("No pudimos cargar el catálogo en este momento. Por favor, intenta más tarde.")
     elif "hola" in user_message:
         msg.body("¡Hola! Bienvenido al sistema de pedidos. Escribe 'catalogo' para ver nuestras opciones.")
     else:
