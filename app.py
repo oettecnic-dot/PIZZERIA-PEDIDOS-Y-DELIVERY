@@ -43,8 +43,8 @@ def webhook():
     resp = MessagingResponse()
     msg = resp.message()
 
-    # Lógica de respuestas del bot
-    if "catalogo" in user_message or "opcion catalogo" in user_message:
+    # Lógica de respuestas del bot (incluyendo variantes con y sin tilde)
+    if "catalogo" in user_message or "catálogo" in user_message:
         msg.body("Aquí tienes nuestro catálogo de pizzas y promos disponibles. ¡Escribe tu pedido cuando estés listo!")
     elif "hola" in user_message:
         msg.body("¡Hola! Bienvenido al sistema de pedidos. Escribe 'catalogo' para ver nuestras opciones.")
